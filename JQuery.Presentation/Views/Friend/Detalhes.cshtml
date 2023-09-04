@@ -1,0 +1,220 @@
+﻿@{
+    Layout = "~/Views/Shared/Layout.cshtml";
+    ViewBag.Title = "Report";
+}
+
+@if (ViewBag.MensagemSucesso != null)
+{
+    <div class="alert alert-success">
+        <strong>Sucesso!</strong> @ViewBag.MensagemSucesso
+        @*<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>*@
+    </div>
+}
+else if (ViewBag.MensagemAlerta != null)
+{
+    <div class="alert alert-warning">
+        <strong>Alerta!</strong> @ViewBag.MensagemAlerta
+        @*<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>*@
+    </div>
+}
+else if (ViewBag.MensagemErro != null)
+{
+    <div class="alert alert-danger">
+        <strong>Erro!</strong> @ViewBag.MensagemErro
+        @*<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>*@
+    </div>
+}
+<h5>Busca de amigos</h5>
+<form id="friendform">
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-5">
+                    <label>Estado</label>
+                    <!--<select class="form-control" id="statesDropdown" name="statesDropdown" onchange="buscarNomes()"></select>
+                    -->
+                    <select class="form-control" id="statesDropdown" name="statesDropdown"></select>
+
+                </div>
+                <div class="col-md-7">
+                    <label>Nomes</label>
+                    <input type="text" disabled class="form-control custom-select" id="nomesDropdown" placeholder="Escolha um nome" name="nomesDropdown">
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label>Nome selecionado</label>
+                <input type="text" disabled class="form-control" id="txtNome" />
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="form-group">
+                <label>Telefone</label>
+                <input type="text" disabled class="form-control" id="txtTelefone" />
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="form-group">
+                <label>Estado</label>
+                <input type="text" disabled class="form-control" id="txtEstado" />
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="form-group">
+                <label>Data de cadastro</label>
+                <input type="text" disabled class="form-control" id="txtDataCadastro" />
+            </div>
+        </div>
+    </div>
+</form>
+<style>
+    .custom-select {
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        background-image: url('data:image/svg+xml,<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M2 6 L30 6 Z M2 16 L30 16 Z M2 26 L30 26 Z"/></svg>');
+        background-repeat: no-repeat;
+        background-position: right 8px center;
+        padding-right: 30px; /* Espaço para o ícone de seta */
+    }
+</style>
+<!-- Inclua a biblioteca jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Inclua a biblioteca jQuery UI -->
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script>
+    $(document).ready(function () {
+
+
+        $("#divErro").hide();
+        $("#divSuccess").hide();
+        $("#divWarning").hide();
+
+
+
+        $.ajax({
+            type: "GET",
+            url: "/State/GetStates",
+            contentType: "application/json; chatset=utf-8",
+            cache: false,
+            data: "{}",
+            success: function (data) {
+
+                var s = '<option value="">Por favor, selecione um estado.</option>';
+                for (var i = 0; i < data.length; i++) {
+                    s += '<option value="' + data[i].idState + '">' + data[i].stateAcronym + '</option>';
+                }
+                $("#statesDropdown").html(s);
+            },
+            error: function (xhr, status, error) {
+
+                alert(xhr.responseText);
+            }
+        });
+
+
+        var selectedFriendId = null;
+
+        $("#statesDropdown").change(function () {
+            var stateId = { idState: $("#statesDropdown").val() };
+            $("#nomesDropdown").val("");
+
+            $("#txtNome").val("");
+            $("#txtTelefone").val("");
+            $("#txtEstado").val("");
+            $("#txtDataCadastro").val("");
+            if (stateId.idState !== null && stateId.idState !== "" && stateId.idState !== undefined && stateId.idState !== "0") {
+                $.ajax({
+                    type: "GET",
+                    url: "/Friend/GetNames",
+                    contentType: "application/json; charset=utf-8",
+                    cache: false,
+                    data: stateId,
+                    success: function (data) {
+                        var availableNames = data.map(function (item) {
+                            return { label: item.friendName, value: item.idFriend };
+                        });
+
+                        $("#nomesDropdown").autocomplete({
+                            source: availableNames,
+                            minLength: 0,
+                            focus: function (event, ui) {
+                                // Apenas muda o foco, não atribui nada ao campo
+                                return false;
+                            },
+                            select: function (event, ui) {
+                                selectedFriendId = ui.item.value;
+                                //coloca o nome no campo
+                                $("#nomesDropdown").val(ui.item.label);
+                                event.preventDefault();
+
+                                //envia o id selecionado para a função
+                                preencherFriends(selectedFriendId);
+                            }
+                        });
+
+                        // Verifica se a lista de nomes está vazia ou não
+                        if (availableNames.length > 0) {
+                            // Remove o atributo "disabled" caso haja opções disponíveis
+                            $("#nomesDropdown").removeAttr("disabled");
+                        } else {
+                            // Adiciona o atributo "disabled" caso não haja opções disponíveis
+                            $("#nomesDropdown").attr("disabled", "disabled");
+                        }
+
+                        $("#nomesDropdown").on("focus", function () {
+                            $(this).autocomplete("search", "");
+                        });
+                    },
+                    error: function (xhr, status, error) {
+                        alert(xhr.responseText);
+                    }
+                });
+            }
+        });
+
+
+
+
+
+
+
+
+        function preencherFriends(selectedId) {
+            $.ajax({
+                type: "GET",
+                url: "/Friend/GetFriend",
+                contentType: "application/json; charset=utf-8",
+                cache: false,
+                data: { idFriend: selectedId },
+                success: function (data) {
+                    console.log(data);
+
+                    $("#txtNome").val(data.friendName);
+                    $("#txtTelefone").val(data.phone);
+                    $("#txtEstado").val(data.stateAcronym);
+                    $("#txtDataCadastro").val(data.dataCadastro);   // Verifique se é dataCadastro
+                },
+                error: function (xhr, status, error) {
+                    alert(xhr.responseText);
+                }
+            });
+        }
+
+
+
+
+
+
+
+    });
+</script>

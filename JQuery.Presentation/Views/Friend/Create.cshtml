@@ -1,0 +1,233 @@
+﻿@model JQuery.Presentation.Models.CreateModel
+
+@{
+    Layout = "~/Views/Shared/Layout.cshtml";
+    ViewBag.Title = "Create";
+}
+
+
+<div class="alert alert-success" id="divSuccess">
+    <strong>Sucesso!</strong> <label id="successMsg"></label>
+    @*<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>*@
+</div>
+
+<div class="alert alert-warning" id="divWarning">
+    <strong>Alerta!</strong>
+    @*<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>*@
+</div>
+
+<div class="alert alert-danger" id="divErro">
+    <strong>Erro!</strong>  <label id="errorMsg"></label>
+    @*<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>*@
+</div>
+
+<h5>Novo Amigo</h5>
+<form id="friendform">
+    <div class="row">
+        <div class="col-md-12">
+            <label>Nome do amigo</label>
+            <input id="txtFriendName" name="FriendName" type="text"  required  minlength="3" maxlength="150" class="form-control" />
+
+        </div>
+
+        <div class="col-md-3">
+            <label>Telefone</label>
+            <input id="txtPhone" required minlengtn="14" maxlength="14" name="Phone" type="text" class="form-control" />
+
+        </div>
+        <div class="col-md-4">
+            <label>Estado</label>
+            <select class="form-control" required id="statesDropdown" name="statesDropdown"></select>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <br />
+            <input id="btnSubmit" type="button" value="Submit" class="btn btn-primary" />
+        </div>
+    </div>
+</form>
+
+
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/additional-methods.min.js"></script>
+<!--Mask-->
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery.maskedinput/1.4.1/jquery.maskedinput.min.js"></script>
+<!--Mask-->
+<style>
+    .my-error-class {
+        color: #FF0000; /* red */
+    }
+
+    .my-valid-class {
+        color: #00CC00; /* green */
+    }
+</style>
+
+
+<script>
+    jQuery.extend(jQuery.validator.messages, {
+        required: "Este campo é requerido.",
+        remote: "Por favor, conserte este campo.",
+        email: "Por favor, rescreva um formato de email válido.",
+        url: "Por favor, escreva uma URL válida.",
+        date: "Por favor, entre uma fata válida.",
+        dateISO: "Por favor, escreva uma data (ISO) válida.",
+        number: "Por favor, somente números.",
+        digits: "Por favor, somente dígitos.",
+        creditcard: "Por favor, escreva um formato de cartão de crédito válido.",
+        equalTo: "Por favor, escreva o mesmo valor.",
+        accept: "Por favor, escreva um valor com uma extensão válida.",
+        maxlength: jQuery.validator.format("Por favor, não escreva mais do que {0} caracteres."),
+        minlength: jQuery.validator.format("Por favor, escreva pelo menos {0} caracteres."),
+        rangelength: jQuery.validator.format("Por favor, escreva um valor entre {0} e {1} caracteres."),
+        range: jQuery.validator.format("Por favor, escreva um valor entre {0} e {1}."),
+        max: jQuery.validator.format("Por favor, escreva um valor menor ou igual a {0}."),
+        min: jQuery.validator.format("Por favor, escreva um valor maior ou igual a {0}."),
+
+
+    });
+
+
+    $(document).ready(function () {
+
+
+
+
+
+        //$.validator.addMethod("lettersonly", function (value, element) {
+        //    return this.optional(element) || /^[a-zA-Z\-\s]+$/i.test(value);
+        //}, "Username must contain only letters, numbers, or dashes.");
+
+        $("form").validate({
+            errorClass: "my-error-class",
+            validClass: "my-valid-class",
+            rules:
+            {
+                FriendName:
+                {
+                    "lettersanddotsonly": true
+                },
+                State:
+                {
+                    "lettersonly": true
+                }
+            },
+            messages:
+            {
+                FriendName:
+                {
+                    "lettersonly": "Somente letras, pontos e espaços."
+                },
+                State:
+                {
+                    "lettersonly": "Este campo aceita somente letras."
+                }
+            }
+
+        });
+
+
+
+        $.validator.addMethod('lettersanddotsonly', function (value, element) {
+            return this.optional(element) || /^[a-zA-Z.\s'éãíúó]+$/.test(value);
+        }, "Por favor, escreva um nome válido.");
+
+        $.validator.addMethod('lettersonly', function (value, element) {
+            return this.optional(element) || /^[A-Z]+$/.test(value);
+        }, "Este campo aceita somente letras.");
+
+
+       
+        $("#divErro").hide();
+        $("#divSuccess").hide();
+        $("#divWarning").hide();
+        
+        $.ajax({
+            type: "GET",
+            url: "/State/GetStates",
+            contentType: "application/json; chatset=utf-8",
+            cache: false,
+            data: "{}",
+            success: function (data) {
+              
+                var s = '<option value="">Por favor, selecione um estado.</option>';
+               
+                for (var i = 0; i < data.length; i++) {
+                    s += '<option value="' + data[i].idState + '">' + data[i].stateAcronym + '</option>';
+                }
+                $("#statesDropdown").html(s);
+            },
+            error: function (xhr, status, error) {
+
+                alert(xhr.responseText);
+            }
+        });
+        
+
+        $("#btnSubmit").click(function (e) {
+            e.preventDefault();
+            if ($("form").valid())
+            {
+                var CreateModel = { FriendName: $("#txtFriendName").val(), Phone: $("#txtPhone").val(), IdState: $("#statesDropdown").val() }
+
+                $.ajax({
+                    url: "/Friend/AddFriend",
+                    type: "POST",
+                    contentType: "application/json; chatset=utf-8",
+                    cache: false,
+                    data: JSON.stringify(CreateModel),
+                    success: function (response) {
+                        $("#divErro").hide();
+                        if (response.errorStr != undefined && response.errorStr != null && response.errorStr != '') {
+                            $("#errorMsg").html(response.errorStr);
+                            alert("response:" + response.errorStr);
+                            $("#divErro").show();
+                        }
+                        else {
+                            $("#divSuccess").show();
+                            $("#successMsg").html(response);                         
+                            $("#txtFriendName").val('');
+                            $("#txtPhone").val('');
+                            $("#txtState").val(''); 
+                            $("#statesDropdown").val('');
+                            $("#statesDropdown").attr('style', 'color:#4F4F4F');
+                          
+                        }
+                    },
+                    error: function (xhr, status, error) {
+
+                        alert(xhr.responseText);
+                    }
+                });
+
+
+            }
+
+         
+
+        });
+
+
+        $("#txtPhone").mask("(99)99999-9999");
+
+        $("#txtPhone").on("blur", function () {
+            var last = $(this).val().substr($(this).val().indexOf("-") + 1);
+
+            if (last.length == 3) {
+                var move = $(this).val().substr($(this).val().indexOf("-") - 1, 1);
+                var lastfour = move + last;
+                var first = $(this).val().substr(0, 9);
+
+                $(this).val(first + '-' + lastfour);
+            }
+        });
+
+
+    });
+</script>

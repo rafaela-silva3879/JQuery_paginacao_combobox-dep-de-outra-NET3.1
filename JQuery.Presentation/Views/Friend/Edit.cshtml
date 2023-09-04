@@ -1,0 +1,217 @@
+﻿@model JQuery.Presentation.Models.FriendEditModel
+
+@{
+    Layout = "~/Views/Shared/Layout.cshtml";
+    ViewBag.Title = "Create";
+}
+
+@if (@ViewBag.MensagemSucesso != null)
+{
+    <div class="alert alert-success">
+        <strong>Sucesso!</strong> @ViewBag.MensagemSucesso
+        @*<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>*@
+    </div>
+}
+else if (@ViewBag.MensagemAlerta != null)
+{
+    <div class="alert alert-warning">
+        <strong>Alerta!</strong> @ViewBag.MensagemAlerta
+        @*<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>*@
+    </div>
+}
+@*else if (@ViewBag.MensagemErro != null)
+    {*@
+<div class="alert alert-danger" id="divErro">
+    <strong>Erro!</strong>  <label id="errorMsg"></label>
+    @*<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>*@
+</div>
+@*}*@
+
+
+<h5>Edição de Amigo</h5>
+<p>Informe as alterações necessárias.</p>
+<form id="friendform" action="@Url.Action("EditFriend", "Friend")" method="post">
+    <input type="hidden" id="txtId" name="IdFriend" />
+
+    <div class="row">
+        <div class="col-md-12">
+            <label>Nome do amigo</label>
+            <input id="txtFriendName" required name="FriendName" type="text" maxlength="150" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label>Telefone</label>
+            <input id="txtPhone" required name="Phone" type="text" maxlength="18" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label>Estado</label>
+           <select class="form-control" required id="statesDropdown" name="IdState"></select>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <br />
+            <input id="btnSubmit" type="button" value="Submit" class="btn btn-primary" />
+        </div>
+    </div>
+</form>
+
+
+
+
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
+<!--Mask-->
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery.maskedinput/1.4.1/jquery.maskedinput.min.js"></script>
+<!--Mask-->
+<style>
+    .my-error-class {
+        color: #FF0000; /* red */
+    }
+
+    .my-valid-class {
+        color: #00CC00; /* green */
+    }
+</style>
+
+
+<script>
+
+
+
+
+
+
+    jQuery.extend(jQuery.validator.messages, {
+        required: "Este campo é requerido.",
+        remote: "Por favor, conserte este campo.",
+        email: "Por favor, rescreva um formato de email válido.",
+        url: "Por favor, escreva uma URL válida.",
+        date: "Por favor, entre uma fata válida.",
+        dateISO: "Por favor, escreva uma data (ISO) válida.",
+        number: "Por favor, somente números.",
+        digits: "Por favor, somente dígitos.",
+        creditcard: "Por favor, escreva um formato de cartão de crédito válido.",
+        equalTo: "Por favor, escreva o mesmo valor.",
+        accept: "Por favor, escreva um valor com uma extensão válida.",
+        maxlength: jQuery.validator.format("Por favor, não escreva mais do que {0} caracteres."),
+        minlength: jQuery.validator.format("Por favor, escreva pelo menos {0} caracteres."),
+        rangelength: jQuery.validator.format("Por favor, escreva um valor entre {0} e {1} caracteres."),
+        range: jQuery.validator.format("Por favor, escreva um valor entre {0} e {1}."),
+        max: jQuery.validator.format("Por favor, escreva um valor menor ou igual a {0}."),
+        min: jQuery.validator.format("Por favor, escreva um valor maior ou igual a {0}."),
+
+    });
+
+  
+    $(document).ready(function () {
+
+        $("form").validate({
+            errorClass: "my-error-class",
+            validClass: "my-valid-class"
+
+        });
+
+        $("#divErro").hide();
+
+        $.ajax({
+            type: "GET",
+            url: "/State/GetStates",
+            contentType: "application/json; chatset=utf-8",
+            cache: false,
+            data: "{}",
+            success: function (data) {
+
+                var s = '<option value="">Por favor, selecione um estado.</option>';
+                for (var i = 0; i < data.length; i++) {
+                    s += '<option value="' + data[i].idState + '">' + data[i].stateAcronym + '</option>';
+                }
+                $("#statesDropdown").html(s);
+            },
+            error: function (xhr, status, error) {
+
+                alert(xhr.responseText);
+            }
+        });
+
+
+
+        firstSearch();
+
+
+        $("#btnSubmit").click(function (e) {
+            if ($("#friendform").validate()) {
+                $("#friendform").submit();
+            }
+
+        });
+
+
+        $("#txtPhone").mask("(99)9999-99999");
+
+        $("#txtPhone").on("blur", function () {
+            var last = $(this).val().substr($(this).val().indexOf("-") + 1);
+
+            if (last.length == 3) {
+                var move = $(this).val().substr($(this).val().indexOf("-") - 1, 1);
+                var lastfour = move + last;
+                var first = $(this).val().substr(0, 9);
+
+                $(this).val(first + '-' + lastfour);
+            }
+        });
+
+        function firstSearch() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const friendId = urlParams.get('id');
+
+
+            $.ajax({
+                type: "POST",
+                contentType: "application/json; chatset=utf-8",
+                data: JSON.stringify(friendId),
+                url: "/Friend/SearchForEdit",
+                dataType: 'json',
+                success: function (data) {
+                    console.log(data);
+                 
+                    $("#divErro").hide();
+                    if (data.errorStr != undefined && data.errorStr != null && data.errorStr != '') {
+                        $("#errorMsg").html(data.errorStr);
+                        alert("response:" + data.errorStr);
+                        $("#divErro").show();
+                    }
+                    else {
+                        $("#txtId").val(data.idFriend)
+                        $("#txtFriendName").val(data.friendName)
+                        $("#statesDropdown").val(data.idState)
+                        $("#txtPhone").val(data.phone)
+                    }
+
+                },
+                error: function (data) {
+                    alert("Aconteceu um erro.");
+                }
+            })
+        }
+
+
+    });
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,252 @@
+﻿@model JQuery.Presentation.Models.FriendSearchModel
+
+@{
+    Layout = "~/Views/Shared/Layout.cshtml";
+    ViewBag.Title = "Create";
+}
+
+
+
+
+<form id="friendform">
+    @if (@ViewBag.MensagemSucesso != null)
+    {
+        <div class="alert alert-success">
+            <strong>Sucesso!</strong> @ViewBag.MensagemSucesso
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    else if (@ViewBag.MensagemAlerta != null)
+    {
+        <div class="alert alert-warning">
+            <strong>Alerta!</strong> @ViewBag.MensagemAlerta
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @*else if (@ViewBag.MensagemErro != null)
+        {*@
+    <div class="alert alert-danger" id="divErro">
+        <strong>Erro!</strong>  <label id="errorMsg"></label>
+        @*<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>*@
+    </div>
+    @*}*@
+    <h5>Consulta de tarefas</h5>
+    <p>Informe o período de datas para consultar suas tarefas.</p>
+    <div class="row">
+        <div class="col-md-3">
+            <input type="date" id="txtDataMin" required name="DataMin" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <input type="date" id="txtDataMax" required name="DataMax" class="form-control" />
+        </div>
+        <div class="col-md-6">
+
+            <input type="submit" id="btnSubmit" class="btn btn-success" value="Pesquisar Amigos" />
+
+        </div>
+    </div>
+    <div class="row">
+        <table id="table" class="table table-sm table-hover mt-3">
+            <thead>
+                <tr>
+                    <th>Nome do amigo</th>
+                    <th>Data do cadastro</th>
+                    <th>Telefone</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="6">
+                        Quantidade de tarefas: <label id="qtt"></label>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+
+    </div>
+
+
+    <div class="row">
+        <div class="col-md-12">
+            <table id="exampleDatatable" class="table table-sm table-hover mt-3">
+                <thead>
+                    <tr>
+                        <th>Nome do amigo</th>
+                        <th>Data do cadastro</th>
+                        <th>Telefone</th>
+                        <th>Estado</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</form>
+
+
+
+<!---Datatables-->
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/dt/dt-1.13.2/af-2.5.2/datatables.min.css" />
+<script type="text/javascript" src="https://cdn.datatables.net/v/dt/dt-1.13.2/af-2.5.2/datatables.min.js"></script>
+<!--End datatables-->
+@*<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>*@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
+<style>
+
+    .my-error-class {
+        color: #FF0000; /* red */
+    }
+
+    .my-valid-class {
+        color: #00CC00; /* green */
+    }
+    th, td {/*a altura da linha estava grande demais*/
+        vertical-align: middle !important; /* alinha verticalmente */
+        height: 36px; /* altura customizada da celula */
+        padding: 0 16px !important; /* 0 de padding na vertical e 16px na horizontal */
+    }
+</style>
+
+
+<script>
+    jQuery.extend(jQuery.validator.messages, {
+        required: "Este campo é requerido.",
+        remote: "Por favor, conserte este campo.",
+        email: "Por favor, rescreva um formato de email válido.",
+        url: "Por favor, escreva uma URL válida.",
+        date: "Por favor, entre uma fata válida.",
+        dateISO: "Por favor, escreva uma data (ISO) válida.",
+        number: "Por favor, somente números.",
+        digits: "Por favor, somente dígitos.",
+        creditcard: "Por favor, escreva um formato de cartão de crédito válido.",
+        equalTo: "Por favor, escreva o mesmo valor.",
+        accept: "Por favor, escreva um valor com uma extensão válida.",
+        maxlength: jQuery.validator.format("Por favor, não escreva mais do que {0} caracteres."),
+        minlength: jQuery.validator.format("Por favor, escreva pelo menos {0} caracteres."),
+        rangelength: jQuery.validator.format("Por favor, escreva um valor entre {0} e {1} caracteres."),
+        range: jQuery.validator.format("Por favor, escreva um valor entre {0} e {1}."),
+        max: jQuery.validator.format("Por favor, escreva um valor menor ou igual a {0}."),
+        min: jQuery.validator.format("Por favor, escreva um valor maior ou igual a {0}."),
+
+    });
+
+
+
+
+
+
+    $(document).ready(function () {
+
+        $("form").validate({
+            errorClass: "my-error-class",
+            validClass: "my-valid-class"
+        });
+
+        $("#divErro").hide();
+
+
+        $("#btnSubmit").click(function (e) {
+            $("#divErro").hide();
+            if ($("form").valid())
+            {
+            $('#friendform').on('submit', function (e) {
+                e.preventDefault();
+
+                var FriendSearchModel = { DataMin: $("#txtDataMin").val(), DataMax: $("#txtDataMax").val() }
+
+
+                $.ajax({
+                    url: "/Friend/SearchFriends",
+                    type: "POST",
+                    contentType: "application/json; chatset=utf-8",
+                    cache: false,
+                    data: JSON.stringify(FriendSearchModel),
+                    success: function (response) {
+                        $("#divErro").hide();
+                        if (response.errorStr != undefined && response.errorStr != null && response.errorStr != '') {
+                            $("#errorMsg").html(response.errorStr);
+
+                            $("#divErro").show();
+                        }
+                        else {
+                            var table = $("#table tbody");
+                            table.html("");
+                            $(response).each(function () {
+
+                                    table.append('<tr><td>' + this.friendName + "</td><td>" + this.dataCadastro + "</td>   <td>" + this.phone + "</td>    <td>" + this.stateAcronym + "</td>    <td> <a href='/Friend/Edit?id=" + this.id + "' class='btn btn-primary btn-sm'>Editar</a>" +
+                                    "<button onclick='javascript:exclude(\"" + this.friendName + "\", \"" + this.id + "\")' class='btn btn-danger btn-sm'>Excluir</button>" +
+                                    "</td ></tr > ")
+
+                            });
+
+                            $('#qtt').html(response.length);
+
+                            var table2 = $('#exampleDatatable').DataTable();
+                            table2.destroy();
+
+                            $("#exampleDatatable").DataTable({
+                                data: response,
+                                retrieve: true,//datatables não dão refresh, então é preciso colocar essa linha pra dizer que é pra usar os dados antigos no click de um botão.   
+                                destroy: true,
+                                columns:
+                                    [
+                                        { 'data': 'friendName' },
+                                        { 'data': 'dataCadastro' },
+                                        { 'data': 'phone' },
+                                        { 'data': 'stateAcronym' },
+                                        {
+                                            "mData": null,
+                                            "bSortable": false,
+                                                "mRender": function (o) {
+                                                    return '<div class="d-flex flex-row"><div class="p-2"><a href="/Friend/Edit?id=' + o.idFriend + '" class="btn btn-info btn-sm">Editar</a></div>' +
+                                                        ' <div class="p-2"><button onclick="javascript:exclude(\'' + o.friendName + '\', \'' + o.idFriend + '\')" class="btn btn-danger btn-sm">Excluir</button></div></div>';
+                                                }
+
+                                        },
+                                    ]
+                            });
+
+                        }
+
+
+
+                    },
+                    error: function (xhr, status, error) {
+
+                        alert("ERRO!" + xhr.responseText);
+                    }
+                });
+            });
+
+        }
+
+
+
+
+        });
+
+
+    })
+    function exclude(name, id) {
+      
+        if (confirm("Tem certeza que deseja excluir o amigo " + name + "?")) {
+
+            var table = $('#exampleDatatable').DataTable();
+            table.destroy();
+
+            window.location.href = "/Friend/Delete?id=" + id;
+
+           
+        }
+
+           
+    }
+</script>
+
